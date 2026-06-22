@@ -1,11 +1,11 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react"; import Link from "next/link"; import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState, useMemo } from "react"; import Link from "next/link"; import { useSearchParams } from "next/navigation";
 import { Album } from "@/types"; import { getPublicAlbums } from "@/lib/firestore";
 import { Card } from "@/components/ui/card"; import { Input } from "@/components/ui/input"; import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge"; import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge"; import { Skeleton } from "@/components/ui/skeleton"; import { BlurImage } from "@/components/ui/blur-image";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Eye, MapPin, Calendar, Grid3x3 } from "lucide-react";
+import { Search, Eye, MapPin, Calendar, Grid3x3, Tags } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce"; import { formatDate } from "@/lib/firebase";
 
 export default function AlbumsPage() {
@@ -35,14 +35,20 @@ function AlbumsContent() {
       return a.title.localeCompare(b.title);
     });
 
+  const allTags = useMemo(() => {
+    const map = new Map<string, number>();
+    albums.forEach(a => a.tags.forEach(t => map.set(t, (map.get(t) || 0) + 1)));
+    return Array.from(map.entries()).sort((a, b) => b[1] - a[1]).slice(0, 16);
+  }, [albums]);
+
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12 animate-fade-in">
+    <div className="max-w-7xl mx-auto px-6 py-12">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight mb-2">Tất Cả Albums</h1>
         <p className="text-muted-foreground">Khám phá bộ sưu tập ảnh</p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 mb-8">
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input placeholder="Tìm kiếm album hoặc #tag..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10 rounded-full" />
@@ -57,6 +63,23 @@ function AlbumsContent() {
           </SelectContent>
         </Select>
       </div>
+
+      {allTags.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
+            <Tags className="w-4 h-4" /> <span>Tags phổ biến</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {allTags.map(([tag, count]) => (
+              <Link key={tag} href={`/albums?tag=${tag}`}>
+                <Badge variant={debouncedSearch.includes(tag) ? "default" : "secondary"} className="rounded-full cursor-pointer hover:opacity-80 transition-opacity gap-1">
+                  #{tag} <span className="opacity-50 text-xs">{count}</span>
+                </Badge>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -74,8 +97,8 @@ function AlbumsContent() {
             <Link key={album.id} href={`/albums/${album.slug}`} className="group" style={{ animationDelay: `${i * 50}ms` }}>
               <Card className="overflow-hidden rounded-3xl border-border/50 hover:border-foreground/10 transition-all duration-300 h-full animate-fade-up">
                 <div className="aspect-[4/3] overflow-hidden">
-                  <img src={album.cover_image_url} alt={album.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                </div>
+                    <BlurImage src={album.cover_image_url} alt={album.title} className="group-hover:scale-105 transition-transform duration-500" />
+                  </div>
                 <div className="p-5">
                   <div className="flex items-center gap-2 mb-2">
                     <Badge variant="secondary" className="text-xs">{album.category}</Badge>

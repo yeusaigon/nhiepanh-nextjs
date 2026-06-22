@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link"; import { useState } from "react"; import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button"; import { Camera, Menu, X } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
+import { Button } from "@/components/ui/button"; import { Camera, Menu, X, Sun, Moon } from "lucide-react";
 import { ADMIN_EMAIL } from "@/types";
 
 const NAV = [
@@ -12,10 +13,11 @@ const NAV = [
 
 export default function Header() {
   const { user, loading, signInWithGoogle, signOut } = useAuth();
+  const { theme, toggle } = useTheme();
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 glass border-b border-white/5">
+    <header className="sticky top-0 z-50 glass border-b border-border/50">
       <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="w-9 h-9 rounded-xl bg-foreground/10 flex items-center justify-center group-hover:bg-foreground/15 transition-colors">
@@ -32,7 +34,10 @@ export default function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={toggle} aria-label="Toggle theme">
+            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </Button>
           {!loading && (user ? (
             <div className="hidden md:flex items-center gap-3">
               {user.email === ADMIN_EMAIL && <Link href="/admin"><Button variant="outline" size="sm">Admin</Button></Link>}
@@ -49,10 +54,10 @@ export default function Header() {
       </div>
 
       {open && (
-        <div className="md:hidden border-t border-white/5 bg-background/95 backdrop-blur-xl animate-in slide-in-from-top-2 duration-200">
+        <div className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-xl animate-in slide-in-from-top-2 duration-200">
           <nav className="flex flex-col p-4 gap-1">
             {NAV.map(n => <Link key={n.href} href={n.href} onClick={() => setOpen(false)} className="px-4 py-2.5 text-sm rounded-xl hover:bg-secondary/50 transition-colors">{n.label}</Link>)}
-            <div className="mt-2 pt-2 border-t border-white/5">
+            <div className="mt-2 pt-2 border-t border-border/50">
               {!loading && (user ? <>
                 {user.email === ADMIN_EMAIL && <Link href="/admin" onClick={() => setOpen(false)} className="block px-4 py-2.5 text-sm rounded-xl hover:bg-secondary/50">Admin</Link>}
                 <button onClick={() => { signOut(); setOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm rounded-xl hover:bg-secondary/50 text-destructive">Sign Out</button>

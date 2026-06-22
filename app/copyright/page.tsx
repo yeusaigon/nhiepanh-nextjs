@@ -13,7 +13,7 @@ export default function CopyrightPage() {
   if (loading) return <div className="max-w-4xl mx-auto px-6 py-12"><Skeleton className="h-96 rounded-3xl" /></div>;
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-20 animate-fade-in">
+    <div className="max-w-4xl mx-auto px-6 py-20">
       <div className="text-center mb-12">
         <Shield className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
         <h1 className="text-3xl font-bold tracking-tight mb-2">Bản Quyền</h1>

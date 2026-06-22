@@ -13,7 +13,7 @@ export default function AboutPage() {
   if (loading) return <div className="max-w-4xl mx-auto px-6 py-12"><Skeleton className="h-64 w-64 rounded-full mx-auto mb-8" /><Skeleton className="h-8 w-48 mx-auto mb-4" /><Skeleton className="h-4 w-96 mx-auto" /></div>;
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-20 text-center animate-fade-in">
+    <div className="max-w-4xl mx-auto px-6 py-20 text-center">
       <div className="w-32 h-32 rounded-full bg-secondary mx-auto mb-6 flex items-center justify-center">
         {settings.author_avatar ? <img src={settings.author_avatar} alt={settings.author_name} className="w-full h-full rounded-full object-cover" /> : <Camera className="w-12 h-12 text-muted-foreground" />}
       </div>

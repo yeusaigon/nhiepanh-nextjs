@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react"; import { useParams } from "next/navigation"; import Link from "next/link";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react"; import { useParams } from "next/navigation"; import Link from "next/link";
 import { Album, Photo } from "@/types";
 import { getAlbumBySlug, getPhotos, getRelatedAlbums, incrementViewCount } from "@/lib/firestore";
 import { Card } from "@/components/ui/card"; import { Button } from "@/components/ui/button"; import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge"; import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge"; import { Skeleton } from "@/components/ui/skeleton"; import { BlurImage } from "@/components/ui/blur-image";
 import { Separator } from "@/components/ui/separator";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { ArrowLeft, Lock, Eye, MapPin, Calendar, User, ChevronLeft, ChevronRight, X, Download, Share2, Heart, Facebook, Twitter, Link2, Check } from "lucide-react";
+import { ArrowLeft, Lock, Eye, MapPin, Calendar, User, ChevronLeft, ChevronRight, X, Download, Share2, Heart, Facebook, Twitter, Link2, Check, ZoomIn, ZoomOut } from "lucide-react";
 import { toast } from "sonner"; import { formatDate } from "@/lib/firebase";
 
 export default function AlbumDetailPage() {
@@ -22,6 +22,8 @@ export default function AlbumDetailPage() {
   const [unlocked, setUnlocked] = useState(false);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -39,12 +41,29 @@ export default function AlbumDetailPage() {
   useEffect(() => {
     const handle = (e: KeyboardEvent) => {
       if (lightboxIdx === null) return;
-      if (e.key === "ArrowLeft" && lightboxIdx > 0) setLightboxIdx(lightboxIdx - 1);
-      if (e.key === "ArrowRight" && lightboxIdx < photos.length - 1) setLightboxIdx(lightboxIdx + 1);
+      if (e.key === "ArrowLeft" && lightboxIdx > 0) { setLightboxIdx(lightboxIdx - 1); setZoomLevel(1); }
+      if (e.key === "ArrowRight" && lightboxIdx < photos.length - 1) { setLightboxIdx(lightboxIdx + 1); setZoomLevel(1); }
       if (e.key === "Escape") setLightboxIdx(null);
     };
     window.addEventListener("keydown", handle); return () => window.removeEventListener("keydown", handle);
   }, [lightboxIdx, photos.length]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (zoomLevel > 1) return;
+    touchStartX.current = e.touches[0].clientX;
+  }, [zoomLevel]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null || lightboxIdx === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 60) {
+      if (diff > 0 && lightboxIdx < photos.length - 1) setLightboxIdx(lightboxIdx + 1);
+      else if (diff < 0 && lightboxIdx > 0) setLightboxIdx(lightboxIdx - 1);
+    }
+    touchStartX.current = null;
+  }, [lightboxIdx, photos.length]);
+
+  const toggleZoom = () => setZoomLevel(z => z === 1 ? 2.5 : 1);
 
   const handlePin = async () => {
     if (!album || pinInput !== album.pin) { toast.error("Mã PIN không đúng"); setPinInput(""); return; }
@@ -72,10 +91,10 @@ export default function AlbumDetailPage() {
   const photo = lightboxIdx !== null ? photos[lightboxIdx] : null;
 
   return (
-    <div className="animate-fade-in">
+    <div>
       {/* Hero */}
-      <section className="relative h-[55vh] min-h-[400px] overflow-hidden">
-        <img src={album.cover_image_url} alt={album.title} className="absolute inset-0 w-full h-full object-cover" />
+      <section className="relative h-[45vh] min-h-[350px] overflow-hidden">
+        <BlurImage src={album.cover_image_url} alt={album.title} containerClassName="absolute inset-0" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
         <div className="absolute inset-0 flex flex-col justify-end max-w-7xl mx-auto px-6 pb-12 w-full">
           <Breadcrumb className="mb-4">
@@ -145,13 +164,11 @@ export default function AlbumDetailPage() {
         {unlocked && photos.length > 0 && (
           <section className="mb-16">
             <h2 className="text-xl font-semibold mb-6 tracking-tight">Gallery ({photos.length} ảnh)</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
               {photos.map((p, i) => (
-                <div key={p.id} className="group cursor-pointer" onClick={() => setLightboxIdx(i)}>
-                  <Card className="overflow-hidden rounded-2xl border-0 bg-secondary/20 group-hover:ring-1 ring-foreground/10 transition-all">
-                    <div className="aspect-[4/3] overflow-hidden">
-                      <img src={p.image_url} alt={p.alt_text || p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                    </div>
+                <div key={p.id} className="group cursor-pointer break-inside-avoid" onClick={() => setLightboxIdx(i)}>
+                  <Card className="rounded-2xl border-0 bg-secondary/20 group-hover:ring-1 ring-foreground/10 transition-all overflow-hidden">
+                    <BlurImage src={p.image_url} alt={p.alt_text || p.title} loading="lazy" />
                     {p.title && <div className="p-3"><p className="text-sm font-medium truncate">{p.title}</p></div>}
                   </Card>
                 </div>
@@ -201,19 +218,20 @@ export default function AlbumDetailPage() {
           {photo && (
             <div className="relative h-full flex flex-col">
               <div className="absolute top-4 right-4 z-10 flex gap-2">
+                <Button size="icon" variant="secondary" className="rounded-full glass" onClick={toggleZoom}>{zoomLevel > 1 ? <ZoomOut className="w-4 h-4" /> : <ZoomIn className="w-4 h-4" />}</Button>
                 <Button size="icon" variant="secondary" className="rounded-full glass" onClick={() => downloadImage(photo.image_url, photo.title || "photo.jpg")}><Download className="w-4 h-4" /></Button>
                 <Button size="icon" variant="secondary" className="rounded-full glass" onClick={() => setLightboxIdx(null)}><X className="w-4 h-4" /></Button>
               </div>
-              <div className="flex-1 flex items-center justify-center p-4">
+              <div className="flex-1 flex items-center justify-center p-4 overflow-auto" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
                 {lightboxIdx !== null && lightboxIdx > 0 && (
                   <Button size="icon" variant="secondary" className="absolute left-4 z-10 rounded-full glass" onClick={() => setLightboxIdx(lightboxIdx - 1)}><ChevronLeft className="w-5 h-5" /></Button>
                 )}
-                <img src={photo.image_url} alt={photo.alt_text || photo.title} className="max-h-[85vh] max-w-full object-contain rounded-2xl" />
+                <img src={photo.image_url} alt={photo.alt_text || photo.title} className="max-h-[85vh] max-w-full object-contain rounded-2xl transition-transform duration-200 cursor-zoom-in" style={{ transform: `scale(${zoomLevel})` }} onClick={toggleZoom} draggable={false} />
                 {lightboxIdx !== null && lightboxIdx < photos.length - 1 && (
                   <Button size="icon" variant="secondary" className="absolute right-4 z-10 rounded-full glass" onClick={() => setLightboxIdx(lightboxIdx + 1)}><ChevronRight className="w-5 h-5" /></Button>
                 )}
               </div>
-              <div className="glass p-4 border-t border-white/10">
+              <div className="glass p-4 border-t border-white/10 text-white">
                 <div className="flex items-center justify-between">
                   <div>
                     {photo.title && <h3 className="font-semibold text-white">{photo.title}</h3>}
