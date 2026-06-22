@@ -1,0 +1,66 @@
+"use client";
+
+import Link from "next/link"; import { useState } from "react"; import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button"; import { Camera, Menu, X } from "lucide-react";
+import { ADMIN_EMAIL } from "@/types";
+
+const NAV = [
+  { href: "/albums", label: "Albums" },
+  { href: "/about", label: "About" },
+  { href: "/copyright", label: "Copyright" },
+];
+
+export default function Header() {
+  const { user, loading, signInWithGoogle, signOut } = useAuth();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <header className="sticky top-0 z-50 glass border-b border-white/5">
+      <div className="mx-auto max-w-7xl px-6 h-16 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div className="w-9 h-9 rounded-xl bg-foreground/10 flex items-center justify-center group-hover:bg-foreground/15 transition-colors">
+            <Camera className="w-5 h-5" />
+          </div>
+          <span className="text-lg font-semibold tracking-tight">Nhiếp Ảnh Số</span>
+        </Link>
+
+        <nav className="hidden md:flex items-center gap-1">
+          {NAV.map(n => (
+            <Link key={n.href} href={n.href} className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-full hover:bg-secondary/50">
+              {n.label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-3">
+          {!loading && (user ? (
+            <div className="hidden md:flex items-center gap-3">
+              {user.email === ADMIN_EMAIL && <Link href="/admin"><Button variant="outline" size="sm">Admin</Button></Link>}
+              <Button variant="ghost" size="sm" onClick={signOut}>Sign Out</Button>
+            </div>
+          ) : (
+            <Button variant="outline" size="sm" onClick={signInWithGoogle} className="hidden md:inline-flex">Sign In</Button>
+          ))}
+
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(!open)}>
+            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </Button>
+        </div>
+      </div>
+
+      {open && (
+        <div className="md:hidden border-t border-white/5 bg-background/95 backdrop-blur-xl animate-in slide-in-from-top-2 duration-200">
+          <nav className="flex flex-col p-4 gap-1">
+            {NAV.map(n => <Link key={n.href} href={n.href} onClick={() => setOpen(false)} className="px-4 py-2.5 text-sm rounded-xl hover:bg-secondary/50 transition-colors">{n.label}</Link>)}
+            <div className="mt-2 pt-2 border-t border-white/5">
+              {!loading && (user ? <>
+                {user.email === ADMIN_EMAIL && <Link href="/admin" onClick={() => setOpen(false)} className="block px-4 py-2.5 text-sm rounded-xl hover:bg-secondary/50">Admin</Link>}
+                <button onClick={() => { signOut(); setOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm rounded-xl hover:bg-secondary/50 text-destructive">Sign Out</button>
+              </> : <button onClick={() => { signInWithGoogle(); setOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm rounded-xl hover:bg-secondary/50">Sign In with Google</button>)}
+            </div>
+          </nav>
+        </div>
+      )}
+    </header>
+  );
+}
