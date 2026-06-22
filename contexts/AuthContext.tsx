@@ -1,8 +1,17 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { User, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut, onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import type { User } from "firebase/auth";
+import { getAuth } from "@/lib/firebase";
+
+let _fbAuth: typeof import("firebase/auth") | null = null;
+
+async function loadFbAuth() {
+  if (!_fbAuth) {
+    _fbAuth = await import("firebase/auth");
+  }
+  return _fbAuth;
+}
 
 type AuthContextType = {
   user: User | null; loading: boolean;
@@ -16,16 +25,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => { setUser(u); setLoading(false); });
-    return () => unsub();
+    let cancelled = false;
+    (async () => {
+      const auth = await getAuth();
+      if (!auth || cancelled) { setLoading(false); return; }
+      const fb = await loadFbAuth();
+      if (!fb || cancelled) { setLoading(false); return; }
+      const unsub = fb.onAuthStateChanged(auth, (u) => {
+        if (!cancelled) { setUser(u); setLoading(false); }
+      });
+      return () => { unsub(); };
+    })();
+    return () => { cancelled = true; };
   }, []);
 
-  const signInWithGoogle = async () => {
-    await signInWithPopup(auth, new GoogleAuthProvider());
-  };
-  const signOut = async () => {
-    await fbSignOut(auth);
-  };
+  const signInWithGoogle = useCallback(async () => {
+    const [auth, fb] = await Promise.all([getAuth(), loadFbAuth()]);
+    if (!auth || !fb) throw new Error("Firebase not available");
+    await fb.signInWithPopup(auth, new fb.GoogleAuthProvider());
+  }, []);
+
+  const signOut = useCallback(async () => {
+    const [auth, fb] = await Promise.all([getAuth(), loadFbAuth()]);
+    if (!auth || !fb) throw new Error("Firebase not available");
+    await fb.signOut(auth);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, signInWithGoogle, signOut }}>

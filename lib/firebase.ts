@@ -1,7 +1,3 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "mock-key",
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "mock.firebaseapp.com",
@@ -12,9 +8,51 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "",
 };
 
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+// Lazy-load Firebase to avoid "self is not defined" during static export build.
+// All Firebase imports are done via dynamic import() so they only load in the browser.
+let _modulesPromise: Promise<{ auth: any; db: any }> | null = null;
+
+async function getModules(): Promise<{ auth: any; db: any }> {
+  if (_modulesPromise) return _modulesPromise;
+
+  _modulesPromise = (async () => {
+    if (typeof window === "undefined") {
+      return { auth: undefined, db: undefined };
+    }
+    const [fbApp, fbAuth, fbFirestore] = await Promise.all([
+      import("firebase/app"),
+      import("firebase/auth"),
+      import("firebase/firestore"),
+    ]);
+    const app =
+      fbApp.getApps().length > 0 ? fbApp.getApp() : fbApp.initializeApp(firebaseConfig);
+    return {
+      auth: fbAuth.getAuth(app),
+      db: fbFirestore.getFirestore(app),
+    };
+  })();
+
+  return _modulesPromise;
+}
+
+export async function getAuth() {
+  return (await getModules()).auth;
+}
+
+export async function getDb() {
+  return (await getModules()).db;
+}
+
+// Keep auth/db as lazy placeholders (will be set after first client-side load).
+// Use getAuth()/getDb() for reliable access.
+export let auth: any;
+export let db: any;
+
+// Pre-warm on client (happens after the module loads in browser)
+getModules().then((m) => {
+  auth = m.auth;
+  db = m.db;
+});
 
 export const isFirebaseConfigured =
   !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY &&

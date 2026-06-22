@@ -1,7 +1,5 @@
 "use client";
 
-export const runtime = "edge";
-
 import { useEffect, useState } from "react"; import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext"; import { Album, Photo, CATEGORIES, ADMIN_EMAIL } from "@/types";
 import { getAdminAlbums, getPhotos, createAlbum, updateAlbum, deleteAlbum, createPhoto, updatePhoto, deletePhoto } from "@/lib/firestore";

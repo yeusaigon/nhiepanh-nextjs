@@ -1,7 +1,5 @@
 "use client";
 
-export const runtime = "edge";
-
 import { useEffect, useState } from "react"; import { useParams } from "next/navigation"; import Link from "next/link";
 import { Album, CATEGORIES } from "@/types"; import { getAlbumsByCategory } from "@/lib/firestore";
 import { Card } from "@/components/ui/card"; import { Badge } from "@/components/ui/badge"; import { Skeleton } from "@/components/ui/skeleton";
