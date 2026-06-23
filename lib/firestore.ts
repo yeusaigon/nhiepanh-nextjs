@@ -9,11 +9,15 @@ let _firestore: typeof import("firebase/firestore") | null = null;
 let cachedPublicAlbums: Album[] | null = null;
 let cachedFeaturedAlbums: Album[] | null = null;
 let cachedSettings: SiteSettings | null = null;
+const cachePhotos = new Map<string, Photo[]>();
+const cacheAlbumsBySlug = new Map<string, Album | null>();
 
 export function clearFirestoreCache() {
   cachedPublicAlbums = null;
   cachedFeaturedAlbums = null;
   cachedSettings = null;
+  cachePhotos.clear();
+  cacheAlbumsBySlug.clear();
 }
 
 async function getFirestore() {
@@ -62,13 +66,15 @@ export async function getFeaturedAlbums(): Promise<Album[]> {
 }
 
 export async function getAlbumBySlug(slug: string): Promise<Album | null> {
+  const authInstance = await getAuth();
+  const currentUser = authInstance?.currentUser;
+  const isAdmin = currentUser?.email === "vietnam.tri@gmail.com";
+  
+  if (!isAdmin && cacheAlbumsBySlug.has(slug)) return cacheAlbumsBySlug.get(slug)!;
+  
   if (!isFirebaseConfigured) return MOCK_ALBUMS.find(a => a.slug === slug) || null;
   const f = await fb(); if (!f) return MOCK_ALBUMS.find(a => a.slug === slug) || null;
   try {
-    const authInstance = await getAuth();
-    const currentUser = authInstance?.currentUser;
-    const isAdmin = currentUser?.email === "vietnam.tri@gmail.com";
-
     let q;
     if (isAdmin) {
       q = f.query(f.collection(f.db, "albums"), f.where("slug", "==", slug), f.limit(1));
@@ -78,7 +84,9 @@ export async function getAlbumBySlug(slug: string): Promise<Album | null> {
 
     const snap = await f.getDocs(q);
     if (snap.empty) return null;
-    return { id: snap.docs[0].id, ...snap.docs[0].data() } as Album;
+    const album = { id: snap.docs[0].id, ...snap.docs[0].data() } as Album;
+    if (!isAdmin) cacheAlbumsBySlug.set(slug, album);
+    return album;
   } catch (err) {
     console.error("Firestore error in getAlbumBySlug:", err);
     return MOCK_ALBUMS.find(a => a.slug === slug) || null;
@@ -86,13 +94,16 @@ export async function getAlbumBySlug(slug: string): Promise<Album | null> {
 }
 
 export async function getPhotos(albumId: string): Promise<Photo[]> {
+  if (cachePhotos.has(albumId)) return cachePhotos.get(albumId)!;
   if (!isFirebaseConfigured) return MOCK_PHOTOS[albumId] || [];
   const f = await fb(); if (!f) return MOCK_PHOTOS[albumId] || [];
   try {
     const q = f.query(f.collection(f.db, "photos"), f.where("album_id", "==", albumId));
     const snap = await f.getDocs(q);
     const photos = snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as Photo));
-    return photos.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+    const sorted = photos.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+    cachePhotos.set(albumId, sorted);
+    return sorted;
   } catch (err) {
     console.error("Firestore error in getPhotos:", err);
     return MOCK_PHOTOS[albumId] || [];

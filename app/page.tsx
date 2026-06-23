@@ -3,12 +3,10 @@
 import { useEffect, useState, useRef } from "react"; import Link from "next/link";
 import { Album, CATEGORIES } from "@/types";
 import { getFeaturedAlbums, getPublicAlbums } from "@/lib/firestore";
-import { MOCK_ALBUMS } from "@/lib/mock-data";
-import { Card } from "@/components/ui/card"; import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge"; import { BlurImage } from "@/components/ui/blur-image";
-import { formatDate } from "@/lib/firebase";
+import { Button } from "@/components/ui/button";
+import { BlurImage } from "@/components/ui/blur-image";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
-import { ArrowRight, Eye, ChevronRight, ChevronDown, Calendar, Sparkles, Building2, User, Mountain, Landmark, Globe, Camera, Plane } from "lucide-react";
+import { ArrowRight, Eye, ChevronRight, ChevronDown, Sparkles, Building2, User, Mountain, Landmark, Globe, Camera, Plane } from "lucide-react";
 import { AlbumCard } from "@/components/ui/album-card";
 import { GooglePagination } from "@/components/ui/pagination-google";
 
@@ -21,12 +19,9 @@ const getCategoryName = (slug: string) => {
 };
 
 export default function HomePage() {
-  const [featured, setFeatured] = useState<Album[]>(() =>
-    MOCK_ALBUMS.filter((a) => a.is_featured)
-  );
-  const [allPublicAlbums, setAllPublicAlbums] = useState<Album[]>(() =>
-    MOCK_ALBUMS.filter((a) => a.is_public)
-  );
+  const [featured, setFeatured] = useState<Album[]>([]);
+  const [allPublicAlbums, setAllPublicAlbums] = useState<Album[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const latestSectionRef = useRef<HTMLDivElement>(null);
 
@@ -37,6 +32,7 @@ export default function HomePage() {
       const shuffled = [...f].sort(() => Math.random() - 0.5);
       setFeatured(shuffled);
       setAllPublicAlbums(l);
+      setLoading(false);
     };
     load();
   }, []);
@@ -72,14 +68,60 @@ export default function HomePage() {
         {/* Background Decorative Glow */}
         <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[130px] pointer-events-none -z-10" />
         <div className="max-w-7xl mx-auto">
-          {heroAlbum && (
+          {loading ? (
+            <div className="space-y-12 animate-pulse">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+                <div className="lg:col-span-5 space-y-6">
+                  <div className="h-6 w-40 bg-muted rounded-full" />
+                  <div className="space-y-3">
+                    <div className="h-10 w-full bg-muted rounded-lg" />
+                    <div className="h-10 w-3/4 bg-muted rounded-lg" />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-4 w-full bg-muted rounded" />
+                    <div className="h-4 w-5/6 bg-muted rounded" />
+                  </div>
+                  <div className="flex gap-6 pt-4 border-t border-border/50">
+                    <div className="h-10 w-24 bg-muted rounded" />
+                    <div className="h-10 w-24 bg-muted rounded" />
+                    <div className="h-10 w-28 bg-muted rounded" />
+                  </div>
+                  <div className="h-4 w-36 bg-muted rounded" />
+                </div>
+                <div className="lg:col-span-7">
+                  <div className="aspect-[4/3] lg:aspect-[16/10] bg-muted rounded-3xl" />
+                </div>
+              </div>
+              <div className="border-t border-border/50 pt-8">
+                <div className="h-4 w-40 bg-muted rounded mb-4" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="flex gap-4 items-center p-3">
+                    <div className="w-32 h-28 sm:w-56 sm:h-40 bg-muted rounded-2xl flex-shrink-0" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-3 w-16 bg-muted rounded" />
+                      <div className="h-5 w-full bg-muted rounded" />
+                      <div className="h-4 w-3/4 bg-muted rounded" />
+                    </div>
+                  </div>
+                  <div className="flex gap-4 items-center p-3">
+                    <div className="w-32 h-28 sm:w-56 sm:h-40 bg-muted rounded-2xl flex-shrink-0" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-3 w-16 bg-muted rounded" />
+                      <div className="h-5 w-full bg-muted rounded" />
+                      <div className="h-4 w-3/4 bg-muted rounded" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : heroAlbum ? (
             <div className="space-y-12">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
                 {/* Left: Editorial Text */}
                 <div className="lg:col-span-5 space-y-6 flex flex-col justify-center animate-fade-in">
                   <div className="space-y-3">
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary/80 text-muted-foreground text-[10px] uppercase tracking-[0.15em] font-semibold border border-border/40 w-fit">
-                      <Sparkles className="w-3 h-3 text-amber-500" /> 01 // NỔI BẬT
+                      <Sparkles className="w-3 h-3 text-amber-500" /> TÁC PHẨM TIÊU BIỂU
                     </div>
                     <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-[1.15]">
                       {heroAlbum.title}
@@ -154,6 +196,10 @@ export default function HomePage() {
                 </div>
               )}
             </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Chưa có tác phẩm nào.</p>
+            </div>
           )}
         </div>
         <div className="absolute bottom-2 left-1/2 -translate-x-1/2 animate-bounce hidden sm:block">
@@ -206,19 +252,36 @@ export default function HomePage() {
             <h2 className="text-2xl font-bold tracking-tight">Album Mới Nhất</h2>
             <Link href="/albums" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">Xem tất cả <ChevronRight className="w-4 h-4" /></Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {latestPaginated.map((album, i) => (
-              <ScrollReveal key={album.id} delay={(i % 3) * 100} className="w-full">
-                <AlbumCard album={album} />
-              </ScrollReveal>
-            ))}
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+              {[1,2,3,4,5,6].map((i) => (
+                <div key={i} className="rounded-2xl border border-border/40 overflow-hidden">
+                  <div className="aspect-[4/3] bg-muted" />
+                  <div className="p-4 space-y-2">
+                    <div className="h-3 w-20 bg-muted rounded" />
+                    <div className="h-5 w-full bg-muted rounded" />
+                    <div className="h-4 w-3/4 bg-muted rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {latestPaginated.map((album, i) => (
+                  <ScrollReveal key={album.id} delay={(i % 3) * 100} className="w-full">
+                    <AlbumCard album={album} />
+                  </ScrollReveal>
+                ))}
+              </div>
 
-          <GooglePagination
-            currentPage={sanitizedPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
+              <GooglePagination
+                currentPage={sanitizedPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+              />
+            </>
+          )}
         </div>
       </section>
     </div>

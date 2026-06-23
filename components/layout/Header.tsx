@@ -100,7 +100,7 @@ export default function Header() {
 
             {/* Dropdown */}
             {dropdownOpen && (
-              <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-border/40 bg-background/98 backdrop-blur-2xl shadow-xl shadow-black/10 overflow-hidden z-50"
+              <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-border/40 bg-background shadow-xl shadow-black/10 overflow-hidden z-50"
                 style={{ animation: "fadeSlideDown 0.15s ease-out" }}>
 
                 {/* Section: Giao diện */}
@@ -176,7 +176,7 @@ export default function Header() {
 
       {/* Mobile menu — smooth slide animation */}
       <div
-        className="md:hidden overflow-hidden border-border/50 bg-background/95 backdrop-blur-2xl"
+        className="md:hidden overflow-hidden border-t border-border/50 bg-background shadow-lg"
         style={{
           maxHeight: mobileOpen ? "400px" : "0px",
           borderTopWidth: mobileOpen ? "1px" : "0px",

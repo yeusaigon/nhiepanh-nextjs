@@ -4,9 +4,10 @@ import Header from "@/components/layout/Header"; import Footer from "@/component
 import BackToTop from "@/components/layout/BackToTop"; import PageWrapper from "@/components/layout/PageWrapper";
 import { Toaster } from "@/components/ui/sonner"; import { TooltipProvider } from "@/components/ui/tooltip";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://nhiepanhso.com"),
   title: { default: "Nhiếp Ảnh Số — Bộ sưu tập ảnh nghệ thuật", template: "%s | Nhiếp Ảnh Số" },
   description: "Bộ sưu tập ảnh nghệ thuật - Nơi lưu giữ khoảnh khắc qua ống kính. Khám phá ảnh đường phố, phong cảnh, chân dung, kiến trúc.",
   openGraph: { title: "Nhiếp Ảnh Số", description: "Bộ sưu tập ảnh nghệ thuật - Nơi lưu giữ khoảnh khắc", type: "website" },
@@ -22,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           __html: `try{var t=localStorage.getItem("theme");if(t==="light")document.documentElement.classList.add("light")}catch(e){}`,
         }} />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} ${inter.variable}`}>
         <ThemeProvider>
           <AuthProvider>
             <TooltipProvider>
