@@ -24,11 +24,23 @@ async function getModules(): Promise<{ auth: any; db: any }> {
       import("firebase/auth"),
       import("firebase/firestore"),
     ]);
-    const app =
-      fbApp.getApps().length > 0 ? fbApp.getApp() : fbApp.initializeApp(firebaseConfig);
+    const isAppInitialized = fbApp.getApps().length > 0;
+    const app = isAppInitialized ? fbApp.getApp() : fbApp.initializeApp(firebaseConfig);
+    
+    let dbInstance;
+    if (isAppInitialized) {
+      dbInstance = fbFirestore.getFirestore(app);
+    } else {
+      dbInstance = fbFirestore.initializeFirestore(app, {
+        localCache: fbFirestore.persistentLocalCache({
+          tabManager: fbFirestore.persistentMultipleTabManager(),
+        }),
+      });
+    }
+
     return {
       auth: fbAuth.getAuth(app),
-      db: fbFirestore.getFirestore(app),
+      db: dbInstance,
     };
   })();
 
@@ -66,7 +78,16 @@ export function withTimeout<T>(p: Promise<T>, ms: number, label?: string): Promi
 }
 
 export function toSlug(text: string): string {
-  return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  let slug = text.toLowerCase();
+  // Normalize and remove combining diacritical marks (accents)
+  slug = slug.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  // Replace letter đ
+  slug = slug.replace(/đ/g, "d");
+  // Replace non-alphanumeric characters with hyphens
+  slug = slug.replace(/[^a-z0-9]+/g, "-");
+  // Clean up leading/trailing hyphens
+  slug = slug.replace(/(^-|-$)/g, "");
+  return slug;
 }
 
 export function formatDate(date: string): string {

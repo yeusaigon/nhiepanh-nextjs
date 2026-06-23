@@ -23,14 +23,14 @@ export type SiteSettings = {
 };
 
 export const CATEGORIES = [
-  { slug: "street", name: "Street Photography", icon: "Building2" },
-  { slug: "portrait", name: "Portrait", icon: "User" },
-  { slug: "landscape", name: "Landscape", icon: "Mountain" },
-  { slug: "architecture", name: "Architecture", icon: "Landmark" },
-  { slug: "travel", name: "Travel", icon: "Globe" },
-  { slug: "macro", name: "Macro", icon: "Eye" },
-  { slug: "aerial", name: "Aerial", icon: "Plane" },
-  { slug: "film", name: "Film", icon: "Camera" },
+  { slug: "street", name: "Đường Phố", icon: "Building2" },
+  { slug: "portrait", name: "Chân Dung", icon: "User" },
+  { slug: "landscape", name: "Phong Cảnh", icon: "Mountain" },
+  { slug: "architecture", name: "Kiến Trúc", icon: "Landmark" },
+  { slug: "travel", name: "Du Lịch", icon: "Globe" },
+  { slug: "macro", name: "Cận Cảnh", icon: "Eye" },
+  { slug: "aerial", name: "Từ Trên Cao", icon: "Plane" },
+  { slug: "film", name: "Ảnh Film", icon: "Camera" },
 ] as const;
 
 export const ADMIN_EMAIL = "vietnam.tri@gmail.com";

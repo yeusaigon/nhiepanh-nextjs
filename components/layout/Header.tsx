@@ -1,20 +1,26 @@
 "use client";
 
-import Link from "next/link"; import { useState } from "react"; import { useAuth } from "@/contexts/AuthContext";
+import Link from "next/link"; import { useState, useEffect } from "react"; import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Button } from "@/components/ui/button"; import { Camera, Menu, X, Sun, Moon } from "lucide-react";
 import { ADMIN_EMAIL } from "@/types";
 
 const NAV = [
-  { href: "/albums", label: "Albums" },
-  { href: "/about", label: "About" },
-  { href: "/copyright", label: "Copyright" },
+  { href: "/albums", label: "Tác phẩm" },
+  { href: "/services", label: "Dịch vụ" },
+  { href: "/about", label: "Giới thiệu" },
+  { href: "/copyright", label: "Bản quyền" },
 ];
 
 export default function Header() {
   const { user, loading, signInWithGoogle, signOut } = useAuth();
   const { theme, toggle } = useTheme();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 glass border-b border-border/50">
@@ -36,15 +42,15 @@ export default function Header() {
 
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl" onClick={toggle} aria-label="Toggle theme">
-            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {mounted && theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </Button>
           {!loading && (user ? (
             <div className="hidden md:flex items-center gap-3">
-              {user.email === ADMIN_EMAIL && <Link href="/admin"><Button variant="outline" size="sm">Admin</Button></Link>}
-              <Button variant="ghost" size="sm" onClick={signOut}>Sign Out</Button>
+              {user.email === ADMIN_EMAIL && <Link href="/admin"><Button variant="outline" size="sm">Quản trị</Button></Link>}
+              <Button variant="ghost" size="sm" onClick={signOut}>Đăng xuất</Button>
             </div>
           ) : (
-            <Button variant="outline" size="sm" onClick={signInWithGoogle} className="hidden md:inline-flex">Sign In</Button>
+            <Button variant="outline" size="sm" onClick={signInWithGoogle} className="hidden md:inline-flex">Đăng nhập</Button>
           ))}
 
           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpen(!open)}>
@@ -59,9 +65,9 @@ export default function Header() {
             {NAV.map(n => <Link key={n.href} href={n.href} onClick={() => setOpen(false)} className="px-4 py-2.5 text-sm rounded-xl hover:bg-secondary/50 transition-colors">{n.label}</Link>)}
             <div className="mt-2 pt-2 border-t border-border/50">
               {!loading && (user ? <>
-                {user.email === ADMIN_EMAIL && <Link href="/admin" onClick={() => setOpen(false)} className="block px-4 py-2.5 text-sm rounded-xl hover:bg-secondary/50">Admin</Link>}
-                <button onClick={() => { signOut(); setOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm rounded-xl hover:bg-secondary/50 text-destructive">Sign Out</button>
-              </> : <button onClick={() => { signInWithGoogle(); setOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm rounded-xl hover:bg-secondary/50">Sign In with Google</button>)}
+                {user.email === ADMIN_EMAIL && <Link href="/admin" onClick={() => setOpen(false)} className="block px-4 py-2.5 text-sm rounded-xl hover:bg-secondary/50">Quản trị</Link>}
+                <button onClick={() => { signOut(); setOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm rounded-xl hover:bg-secondary/50 text-destructive">Đăng xuất</button>
+              </> : <button onClick={() => { signInWithGoogle(); setOpen(false); }} className="w-full text-left px-4 py-2.5 text-sm rounded-xl hover:bg-secondary/50">Đăng nhập bằng Google</button>)}
             </div>
           </nav>
         </div>

@@ -20,12 +20,12 @@
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
-  <url><loc>https://nhiepanh.pages.dev/albums/sai-gon-dem-hoa-le</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://nhiepanh.pages.dev/albums/ca-phe-bet-nguoi-sai-gon</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://nhiepanh.pages.dev/albums/dau-an-kien-truc-phap</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://nhiepanh.pages.dev/albums/bien-vang-phu-quoc</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://nhiepanh.pages.dev/albums/sac-mau-cho-noi-cai-rang</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://nhiepanh.pages.dev/albums/net-dep-nghe-thuat-ba-le</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://nhiepanh.pages.dev/albums/detail?gallery=sai-gon-dem-hoa-le</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://nhiepanh.pages.dev/albums/detail?gallery=ca-phe-bet-nguoi-sai-gon</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://nhiepanh.pages.dev/albums/detail?gallery=dau-an-kien-truc-phap</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://nhiepanh.pages.dev/albums/detail?gallery=bien-vang-phu-quoc</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://nhiepanh.pages.dev/albums/detail?gallery=sac-mau-cho-noi-cai-rang</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://nhiepanh.pages.dev/albums/detail?gallery=net-dep-nghe-thuat-ba-le</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://nhiepanh.pages.dev/categories/street</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://nhiepanh.pages.dev/categories/portrait</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
   <url><loc>https://nhiepanh.pages.dev/categories/landscape</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>

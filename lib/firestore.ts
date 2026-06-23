@@ -1,9 +1,20 @@
-import { isFirebaseConfigured, withTimeout, getDb } from "./firebase";
+import { isFirebaseConfigured, getDb, getAuth } from "./firebase";
 import { Album, Photo, SiteSettings } from "@/types";
 import { MOCK_ALBUMS, MOCK_PHOTOS, MOCK_SETTINGS } from "./mock-data";
 
 // Lazy-load firestore functions (avoids "self is not defined" during static export)
 let _firestore: typeof import("firebase/firestore") | null = null;
+
+// Memory Cache for optimization and cost reduction
+let cachedPublicAlbums: Album[] | null = null;
+let cachedFeaturedAlbums: Album[] | null = null;
+let cachedSettings: SiteSettings | null = null;
+
+export function clearFirestoreCache() {
+  cachedPublicAlbums = null;
+  cachedFeaturedAlbums = null;
+  cachedSettings = null;
+}
 
 async function getFirestore() {
   if (!_firestore) {
@@ -19,44 +30,73 @@ async function fb() {
 }
 
 export async function getPublicAlbums(): Promise<Album[]> {
+  if (cachedPublicAlbums) return cachedPublicAlbums;
   if (!isFirebaseConfigured) return MOCK_ALBUMS.filter(a => a.is_public);
   const f = await fb(); if (!f) return MOCK_ALBUMS.filter(a => a.is_public);
   try {
     const q = f.query(f.collection(f.db, "albums"), f.where("is_public", "==", true), f.orderBy("created_at", "desc"));
-    const snap = await withTimeout(f.getDocs(q), 5000, "albums");
-    return snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as Album));
-  } catch { return MOCK_ALBUMS.filter(a => a.is_public); }
+    const snap = await f.getDocs(q);
+    const albums = snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as Album));
+    cachedPublicAlbums = albums;
+    return albums;
+  } catch (err) {
+    console.error("Firestore error in getPublicAlbums:", err);
+    return MOCK_ALBUMS.filter(a => a.is_public);
+  }
 }
 
 export async function getFeaturedAlbums(): Promise<Album[]> {
+  if (cachedFeaturedAlbums) return cachedFeaturedAlbums;
   if (!isFirebaseConfigured) return MOCK_ALBUMS.filter(a => a.is_featured).sort((a, b) => b.view_count - a.view_count);
   const f = await fb(); if (!f) return MOCK_ALBUMS.filter(a => a.is_featured).sort((a, b) => b.view_count - a.view_count);
   try {
-    const q = f.query(f.collection(f.db, "albums"), f.where("is_featured", "==", true), f.where("is_public", "==", true), f.orderBy("view_count", "desc"), f.limit(6));
-    const snap = await withTimeout(f.getDocs(q), 5000, "featured");
-    return snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as Album));
-  } catch { return MOCK_ALBUMS.filter(a => a.is_featured).sort((a, b) => b.view_count - a.view_count); }
+    const q = f.query(f.collection(f.db, "albums"), f.where("is_featured", "==", true), f.where("is_public", "==", true), f.orderBy("view_count", "desc"), f.limit(10));
+    const snap = await f.getDocs(q);
+    const albums = snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as Album));
+    cachedFeaturedAlbums = albums;
+    return albums;
+  } catch (err) {
+    console.error("Firestore error in getFeaturedAlbums:", err);
+    return MOCK_ALBUMS.filter(a => a.is_featured).sort((a, b) => b.view_count - a.view_count);
+  }
 }
 
 export async function getAlbumBySlug(slug: string): Promise<Album | null> {
   if (!isFirebaseConfigured) return MOCK_ALBUMS.find(a => a.slug === slug) || null;
   const f = await fb(); if (!f) return MOCK_ALBUMS.find(a => a.slug === slug) || null;
   try {
-    const q = f.query(f.collection(f.db, "albums"), f.where("slug", "==", slug), f.limit(1));
-    const snap = await withTimeout(f.getDocs(q), 5000, "album");
+    const authInstance = await getAuth();
+    const currentUser = authInstance?.currentUser;
+    const isAdmin = currentUser?.email === "vietnam.tri@gmail.com";
+
+    let q;
+    if (isAdmin) {
+      q = f.query(f.collection(f.db, "albums"), f.where("slug", "==", slug), f.limit(1));
+    } else {
+      q = f.query(f.collection(f.db, "albums"), f.where("slug", "==", slug), f.where("is_public", "==", true), f.limit(1));
+    }
+
+    const snap = await f.getDocs(q);
     if (snap.empty) return null;
     return { id: snap.docs[0].id, ...snap.docs[0].data() } as Album;
-  } catch { return MOCK_ALBUMS.find(a => a.slug === slug) || null; }
+  } catch (err) {
+    console.error("Firestore error in getAlbumBySlug:", err);
+    return MOCK_ALBUMS.find(a => a.slug === slug) || null;
+  }
 }
 
 export async function getPhotos(albumId: string): Promise<Photo[]> {
   if (!isFirebaseConfigured) return MOCK_PHOTOS[albumId] || [];
   const f = await fb(); if (!f) return MOCK_PHOTOS[albumId] || [];
   try {
-    const q = f.query(f.collection(f.db, "photos"), f.where("album_id", "==", albumId), f.orderBy("display_order", "asc"));
-    const snap = await withTimeout(f.getDocs(q), 5000, "photos");
-    return snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as Photo));
-  } catch { return MOCK_PHOTOS[albumId] || []; }
+    const q = f.query(f.collection(f.db, "photos"), f.where("album_id", "==", albumId));
+    const snap = await f.getDocs(q);
+    const photos = snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as Photo));
+    return photos.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+  } catch (err) {
+    console.error("Firestore error in getPhotos:", err);
+    return MOCK_PHOTOS[albumId] || [];
+  }
 }
 
 export async function getRelatedAlbums(currentSlug: string, category: string): Promise<Album[]> {
@@ -64,7 +104,7 @@ export async function getRelatedAlbums(currentSlug: string, category: string): P
   const f = await fb(); if (!f) return MOCK_ALBUMS.filter(a => a.slug !== currentSlug && a.is_public).slice(0, 4);
   try {
     const q = f.query(f.collection(f.db, "albums"), f.where("category", "==", category), f.where("is_public", "==", true), f.orderBy("created_at", "desc"), f.limit(5));
-    const snap = await withTimeout(f.getDocs(q), 5000, "related");
+    const snap = await f.getDocs(q);
     return snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as Album)).filter((a: Album) => a.slug !== currentSlug).slice(0, 4);
   } catch { return MOCK_ALBUMS.filter(a => a.slug !== currentSlug).slice(0, 4); }
 }
@@ -74,7 +114,7 @@ export async function getAlbumsByCategory(category: string): Promise<Album[]> {
   const f = await fb(); if (!f) return MOCK_ALBUMS.filter(a => a.category === category && a.is_public);
   try {
     const q = f.query(f.collection(f.db, "albums"), f.where("category", "==", category), f.where("is_public", "==", true), f.orderBy("created_at", "desc"));
-    const snap = await withTimeout(f.getDocs(q), 5000, "category");
+    const snap = await f.getDocs(q);
     return snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as Album));
   } catch { return MOCK_ALBUMS.filter(a => a.category === category && a.is_public); }
 }
@@ -84,37 +124,46 @@ export async function getAdminAlbums(userId: string): Promise<Album[]> {
   const f = await fb(); if (!f) return MOCK_ALBUMS;
   try {
     const q = f.query(f.collection(f.db, "albums"), f.where("user_id", "==", userId), f.orderBy("created_at", "desc"));
-    const snap = await withTimeout(f.getDocs(q), 5000, "admin-albums");
+    const snap = await f.getDocs(q);
     return snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as Album));
-  } catch { return MOCK_ALBUMS; }
+  } catch (err) {
+    console.error("Firestore error in getAdminAlbums:", err);
+    return MOCK_ALBUMS;
+  }
 }
 
 export async function getSettings(): Promise<SiteSettings> {
+  if (cachedSettings) return cachedSettings;
   if (!isFirebaseConfigured) return MOCK_SETTINGS;
   const f = await fb(); if (!f) return MOCK_SETTINGS;
   try {
-    const snap = await withTimeout(f.getDoc(f.doc(f.db, "settings", "site")), 5000, "settings");
+    const snap = await f.getDoc(f.doc(f.db, "settings", "site"));
     if (!snap.exists()) return MOCK_SETTINGS;
-    return snap.data() as SiteSettings;
+    const settings = snap.data() as SiteSettings;
+    cachedSettings = settings;
+    return settings;
   } catch { return MOCK_SETTINGS; }
 }
 
 export async function incrementViewCount(albumId: string) {
   if (!isFirebaseConfigured) return;
   const f = await fb(); if (!f) return;
-  try { await withTimeout(f.updateDoc(f.doc(f.db, "albums", albumId), { view_count: f.increment(1) }), 3000); } catch {}
+  try { await f.updateDoc(f.doc(f.db, "albums", albumId), { view_count: f.increment(1) }); } catch {}
 }
 
 export async function createAlbum(data: Record<string, any>) {
+  clearFirestoreCache();
   const f = await fb(); if (!f) throw new Error("Firebase not available");
   const now = new Date().toISOString();
   return f.addDoc(f.collection(f.db, "albums"), { ...data, created_at: now, updated_at: now });
 }
 export async function updateAlbum(id: string, data: Partial<Album>) {
+  clearFirestoreCache();
   const f = await fb(); if (!f) throw new Error("Firebase not available");
   return f.updateDoc(f.doc(f.db, "albums", id), { ...data, updated_at: new Date().toISOString() });
 }
 export async function deleteAlbum(id: string) {
+  clearFirestoreCache();
   const f = await fb(); if (!f) throw new Error("Firebase not available");
   const q = f.query(f.collection(f.db, "photos"), f.where("album_id", "==", id));
   const snap = await f.getDocs(q);
@@ -137,6 +186,7 @@ export async function deletePhoto(id: string) {
   return f.deleteDoc(f.doc(f.db, "photos", id));
 }
 export async function saveSettings(data: Partial<SiteSettings>) {
+  clearFirestoreCache();
   const f = await fb(); if (!f) throw new Error("Firebase not available");
   return f.updateDoc(f.doc(f.db, "settings", "site"), { ...data, updated_at: new Date().toISOString() });
 }
