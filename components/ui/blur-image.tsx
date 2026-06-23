@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface BlurImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   containerClassName?: string;
@@ -19,6 +19,12 @@ export function BlurImage({
   ...props
 }: BlurImageProps) {
   const [loaded, setLoaded] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const isUnsplash = src ? src.includes("unsplash.com") : false;
   const tinySrc = src && isUnsplash ? `${src}${src.includes("?") ? "&" : "?"}w=30&q=10` : "";
 
@@ -36,7 +42,7 @@ export function BlurImage({
         src={src}
         alt={alt}
         loading={loading}
-        fetchPriority={fetchPriority}
+        fetchPriority={mounted ? fetchPriority : undefined}
         decoding="async"
         className={`${fill ? "absolute inset-0" : "relative"} w-full h-full object-cover transition-opacity duration-700 ${loaded ? "opacity-100" : "opacity-0"} ${className}`}
         onLoad={() => setLoaded(true)}
