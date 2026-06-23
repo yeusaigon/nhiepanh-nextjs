@@ -123,7 +123,9 @@ export async function getAdminAlbums(userId: string): Promise<Album[]> {
   if (!isFirebaseConfigured) return MOCK_ALBUMS;
   const f = await fb(); if (!f) return MOCK_ALBUMS;
   try {
-    const q = f.query(f.collection(f.db, "albums"), f.where("user_id", "==", userId), f.orderBy("created_at", "desc"));
+    // Admin có quyền đọc tất cả albums (kể cả private) theo Security Rules.
+    // Không filter theo user_id vì Firestore sẽ block nếu có album private trong kết quả.
+    const q = f.query(f.collection(f.db, "albums"), f.orderBy("created_at", "desc"));
     const snap = await f.getDocs(q);
     return snap.docs.map((d: any) => ({ id: d.id, ...d.data() } as Album));
   } catch (err) {
